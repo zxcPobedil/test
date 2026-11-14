@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constitutional Detective</title>
+<style>
+:root{
+ --bg:#0b1220;--panel:#121e31;--panel2:#192941;--gold:#e0b866;--cream:#f3ead7;
+ --muted:#aab6c7;--red:#a94b52;--green:#5ca78b;--line:#30415a;--blue:#6f91c7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 0%,#1a2b43 0,#0b1220 52%);color:var(--cream);font-family:Georgia,'Times New Roman',serif;min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer}
+.top{padding:22px 4vw 14px;display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid #ffffff18;flex-wrap:wrap}
+.brand{font-size:clamp(22px,3vw,34px);letter-spacing:2px;color:var(--gold);font-weight:bold}
+.tag{font:11px Arial,sans-serif;letter-spacing:2px;color:var(--muted);margin-top:5px}
+.pill{border:1px solid #8c7447;color:var(--gold);padding:7px 12px;border-radius:30px;font:11px Arial,sans-serif;letter-spacing:1px;white-space:nowrap}
+main{max-width:1400px;margin:auto;padding:22px 3vw 50px}
+.intro{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+h1{font-size:clamp(27px,4vw,46px);margin:0 0 8px;line-height:1.05}
+.subtitle{color:var(--muted);font:14px/1.5 Arial,sans-serif;max-width:650px}
+.controls{display:flex;gap:9px;flex-wrap:wrap}
+.btn{border:1px solid var(--gold);background:var(--gold);color:#172033;padding:11px 16px;border-radius:8px;font:bold 12px Arial,sans-serif;letter-spacing:.7px}
+.btn.secondary{background:transparent;color:var(--cream);border-color:var(--line)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:18px;align-items:start}
+.board-wrap,.side-card{background:linear-gradient(145deg,#142239,#0f1a2b);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px #0005}
+.board-wrap{padding:14px}
+.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(70px,1fr));gap:5px;min-height:650px}
+.tile{position:relative;background:linear-gradient(145deg,#20334d,#17263b);border:1px solid #40516a;border-radius:7px;padding:7px 5px;display:flex;flex-direction:column;justify-content:space-between;min-width:0;overflow:hidden;cursor:pointer;transition:transform .15s}
+.tile:hover{transform:scale(1.04)}
+.tile .num{font:10px Arial,sans-serif;color:#a9b7ca}
+.tile .tile-name{font:bold 10px/1.15 Arial,sans-serif;letter-spacing:.4px;text-align:center;overflow-wrap:anywhere}
+.tile .tile-icon{font-size:18px;text-align:center}
+.tile .owner-badge{position:absolute;top:2px;right:4px;font-size:14px;filter:drop-shadow(0 1px 2px #000)}
+.tile.start{background:linear-gradient(145deg,#7a6337,#3d3528);border-color:var(--gold)}
+.tile.case{border-color:#9c555d}.tile.evidence{border-color:#528c83}.tile.constitution{border-color:#718eb8}.tile.court{border-color:#b18c4e}
+.tile.cross{border-color:#8a72c9}.tile.witness{border-color:#c98868}.tile.objection{border-color:#c96a8a}
+.tile.active{outline:3px solid var(--gold);box-shadow:0 0 18px #e0b86688;z-index:2}
+.tile.owned{box-shadow:inset 0 0 0 2px var(--gold)}
+.pawns{display:flex;justify-content:center;gap:2px;flex-wrap:wrap;min-height:14px}
+.pawn{width:12px;height:12px;border-radius:50%;border:2px solid #fff9;box-shadow:0 1px 4px #000}
+.center{grid-column:2/8;grid-row:2/8;background:radial-gradient(circle,#20334c,#101a2a 75%);border:1px solid #43536a;border-radius:12px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0}
+.center h2{font-size:clamp(18px,2.2vw,28px);letter-spacing:2px;color:var(--gold);margin:7px 0}
+.center p{font:12px/1.5 Arial,sans-serif;color:var(--muted);max-width:370px}
+.flags{font-size:25px;letter-spacing:8px;margin:7px}
+.dice{font-size:42px;margin:5px}
+.side{display:flex;flex-direction:column;gap:14px}
+.side-card{padding:16px}
+.side-card h3{margin:0 0 12px;color:var(--gold);font-size:17px;letter-spacing:.5px}
+.player{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff13;font:13px Arial,sans-serif}
+.player:last-child{border:0}
+.player.current{color:var(--gold)}
+.player-left{display:flex;align-items:center;gap:9px}
+.dot{width:12px;height:12px;border-radius:50%}
+.score{font-weight:bold;font-variant-numeric:tabular-nums}
+.turn-info{font:13px/1.55 Arial,sans-serif;color:var(--muted)}
+.turn-info strong{color:var(--cream)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font:11px Arial,sans-serif;color:var(--muted)}
+.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;background:var(--gold)}
+.legend .lcase:before{background:var(--red)}.legend .lev:before{background:var(--green)}.legend .lc:before{background:var(--blue)}.legend .lcross:before{background:#8a72c9}
+.footer-note{font:11px/1.5 Arial,sans-serif;color:#8492a7;margin-top:12px}
+.log{max-height:120px;overflow-y:auto;font:11px/1.5 Arial,sans-serif;color:var(--muted);background:#0a121f;border-radius:8px;padding:8px;margin-top:8px}
+.log p{margin:0 0 3px}
+.overlay{position:fixed;inset:0;background:#050a12d9;display:none;align-items:center;justify-content:center;padding:18px;z-index:10;overflow:auto}
+.overlay.show{display:flex}
+.modal{width:min(720px,100%);max-height:92vh;overflow:auto;background:linear-gradient(145deg,#1a2b43,#101a2a);border:1px solid #8c7447;border-radius:16px;padding:24px;box-shadow:0 25px 80px #000b}
+.modal-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
+.kicker{font:11px Arial,sans-serif;letter-spacing:2px;color:var(--gold)}
+.close{background:transparent;border:1px solid var(--line);color:var(--cream);border-radius:50%;width:32px;height:32px}
+.modal h2{font-size:clamp(23px,4vw,34px);margin:8px 0 12px}
+.case-text{font:15px/1.65 Arial,sans-serif;color:#e1e7ef}
+.translation{font:13px/1.55 Arial,sans-serif;color:#aebbd0;border-left:2px solid var(--gold);padding-left:12px;margin:12px 0}
+.question{margin-top:20px;font:bold 15px/1.5 Arial,sans-serif}
+.options{display:grid;gap:9px;margin:13px 0}
+.option{background:#17263a;border:1px solid #40516a;border-radius:8px;padding:12px;text-align:left;color:var(--cream);font:13px/1.45 Arial,sans-serif}
+.option:hover{border-color:var(--gold)}
+.option.selected{border-color:var(--gold);background:#3a3428}
+.option.correct{border-color:var(--green);background:#17372f}
+.option.wrong{border-color:var(--red);background:#3b2029}
+.feedback{display:none;margin:14px 0;padding:13px;border-radius:8px;background:#102b28;border:1px solid #477d70;font:13px/1.6 Arial,sans-serif}
+.feedback.show{display:block}
+.feedback.wrongfb{background:#351f27;border-color:#92505b}
+.modal-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
+.small{font:11px/1.5 Arial,sans-serif;color:var(--muted)}
+.setup{display:grid;gap:12px}
+.setup label{font:12px Arial,sans-serif;color:var(--muted)}
+.setup input{width:100%;margin-top:6px;padding:11px;background:#0d1726;border:1px solid var(--line);border-radius:7px;color:white}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hidden{display:none!important}
+.country-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.country-option{background:#17263a;border:2px solid #40516a;border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s}
+.country-option:hover{border-color:var(--gold)}
+.country-option.selected{border-color:var(--gold);background:#3a3428}
+.country-option .flag{font-size:28px}
+.country-option .cname{font:11px Arial,sans-serif;margin-top:4px;color:var(--muted)}
+.country-option .verdict{font:10px Arial,sans-serif;margin-top:6px;letter-spacing:1px}
+.speak-btn{background:transparent;border:1px solid var(--line);color:var(--cream);border-radius:6px;padding:6px 10px;font:11px Arial,sans-serif;margin-left:8px}
+.final-banner{text-align:center;padding:20px;background:linear-gradient(145deg,#3a3428,#1a2b43);border-radius:12px;margin-bottom:16px}
+.final-banner h2{font-size:32px;color:var(--gold);margin-bottom:8px}
+.final-banner .big-score{font-size:48px;color:var(--gold);font-weight:bold}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.board{min-height:560px;grid-template-rows:repeat(8,minmax(58px,1fr))}.side{display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.top{align-items:flex-start}.intro{display:block}.controls{margin-top:14px}.board-wrap{padding:7px}.board{gap:3px;grid-template-rows:repeat(8,minmax(44px,1fr))}.tile{padding:4px 2px}.tile .tile-name{font-size:7px}.tile .num{font-size:8px}.tile .tile-icon{font-size:13px}.center{padding:7px}.center p{font-size:9px}.flags{font-size:17px;letter-spacing:3px}.side{grid-template-columns:1fr}.modal{padding:17px}.country-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+ <div><div class="brand">CONSTITUTIONAL DETECTIVE</div><div class="tag">THREE COUNTRIES · THREE CONSTITUTIONS · ONE TRUTH</div></div>
+ <div class="pill" id="roundPill">ROUND 1 / 3 · TURN 1</div>
+</header>
+<main>
+ <section class="intro">
+  <div><h1>Investigate. Compare. Decide.</h1><div class="subtitle">Travel through three constitutional systems, examine evidence and defend your legal conclusions. The most convincing investigator wins.</div></div>
+  <div class="controls">
+   <button class="btn secondary" id="rulesBtn">HOW TO PLAY</button>
+   <button class="btn secondary" id="demoBtn" title="Auto-play demo for presentation">▶ DEMO</button>
+   <button class="btn" id="newGameBtn">NEW GAME</button>
+  </div>
+ </section>
+ <section class="layout">
+  <div class="board-wrap"><div class="board" id="board"></div></div>
+  <aside class="side">
+   <div class="side-card"><h3>Investigation team</h3><div id="players"></div></div>
+   <div class="side-card">
+    <h3>Current turn</h3>
+    <div class="turn-info" id="turnInfo">Set up your team to begin the investigation.</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+     <div class="dice" id="dice">⚄</div>
+     <button class="btn" id="rollBtn" disabled>ROLL DICE</button>
+    </div>
+    <div class="small" id="rollMessage" style="margin-top:8px">Start a new game to play.</div>
+    <div class="log" id="log"></div>
+   </div>
+   <div class="side-card">
+    <h3>Board key</h3>
+    <div class="legend">
+     <span>Start / Bonus</span><span class="lcase">Case file</span>
+     <span class="lev">Evidence</span><span class="lc">Constitution</span>
+     <span class="lcross">Cross-country</span><span>Court decision</span>
+    </div>
+    <div class="footer-note">Correct answers earn Legal Points. Owned cases give +1 LP each time another player lands on them.</div>
+   </div>
+  </aside>
+ </section>
+</main>
+<div class="overlay" id="modalOverlay"><div class="modal" id="modal"></div></div>
+<script>
+/* ============================================================
+   BOARD LAYOUT (28 tiles, perimeter of 8x8)
+   ============================================================ */
+const spaces = [
+ ["START","start","🚩"],["CASE FILE","case","📁"],["EVIDENCE","evidence","🔎"],["CONSTITUTION","constitution","📜"],
+ ["CROSS-COUNTRY","cross","🌍"],["COURT","court","⚖️"],["CASE FILE","case","📁"],["BONUS","bonus","⭐"],
+ ["WITNESS","witness","🗣️"],["CONSTITUTION","constitution","📜"],["CASE FILE","case","📁"],["EVIDENCE","evidence","🔎"],
+ ["CROSS-COUNTRY","cross","🌍"],["COURT","court","⚖️"],["OBJECTION!","objection","✋"],["CASE FILE","case","📁"],
+ ["EVIDENCE","evidence","🔎"],["CONSTITUTION","constitution","📜"],["WITNESS","witness","🗣️"],["CROSS-COUNTRY","cross","🌍"],
+ ["COURT","court","⚖️"],["CASE FILE","case","📁"],["BONUS","bonus","⭐"],["EVIDENCE","evidence","🔎"],
+ ["CONSTITUTION","constitution","📜"],["CASE FILE","case","📁"],["CROSS-COUNTRY","cross","🌍"],["FINAL COURT","court","🏛️"]
+];
+
+/* ============================================================
+   CARDS (расширено: добавлена карточка cross-country с 3 странами)
+   ============================================================ */
+const cards = [
+ {type:"CASE FILE",country:"GERMANY",title:"THE SILENCED TEACHER",text:"A Muslim teacher at a public school wears a headscarf as an expression of her religious beliefs. The school prohibits it, invoking the state's duty of religious neutrality. The teacher challenges the ban as an interference with her fundamental rights.",ru:"Учительница государственной школы носит хиджаб по религиозным убеждениям. Школа запрещает его, ссылаясь на нейтральность государства. Учительница оспаривает запрет как вмешательство в её основные права.",q:"Which constitutional provision is most directly relevant to the teacher's claim?",opts:["Article 4 of the German Basic Law, protecting freedom of faith and conscience.","Article 8 of the Basic Law, protecting freedom of assembly.","Article 12 of the Basic Law, protecting occupational freedom."],a:0,why:"Article 4 protects freedom of faith and the undisturbed practice of religion. In its 2015 headscarf decisions, the Federal Constitutional Court rejected a blanket ban based solely on an abstract danger; a sufficiently concrete risk to school peace or state neutrality is required.",ref:"German Federal Constitutional Court, 27 January 2015, 1 BvR 471/10 and 1 BvR 1181/10.",points:3},
+ {type:"CASE FILE",country:"USA",title:"THE SILENCED JOURNALIST",text:"A newspaper publishes an investigation accusing a senior public official of corruption. The official threatens legal action and asks the authorities to stop further publication. The newspaper argues that the threat chills political speech and undermines democratic accountability.",ru:"Газета публикует расследование о коррупции высокопоставленного чиновника. Чиновник угрожает судом и требует остановить дальнейшие публикации. Издание утверждает, что это подавляет политическую речь.",q:"Which constitutional protection is central to the newspaper's argument?",opts:["The First Amendment's protection of freedom of speech and of the press.","The Second Amendment's right to keep and bear arms.","The Tenth Amendment's reservation of powers to the states."],a:0,why:"The First Amendment protects freedom of speech and of the press against government interference. New York Times Co. v. Sullivan (1964) established the actual-malice standard for certain defamation claims involving public officials.",ref:"U.S. Constitution, First Amendment; New York Times Co. v. Sullivan, 376 U.S. 254 (1964).",points:3},
+ {type:"CASE FILE",country:"RUSSIA",title:"THE FORBIDDEN DEMONSTRATION",text:"A group of citizens plans a peaceful public gathering to express disagreement with a government policy. The authorities refuse the proposed arrangements. The organisers argue that the refusal and subsequent dispersal of the gathering violate their constitutional freedom of assembly.",ru:"Группа граждан планирует мирное публичное собрание. Власти отказывают в согласовании. Организаторы считают, что отказ нарушает свободу собраний.",q:"Which article of the Russian Constitution expressly protects the right to assemble peacefully?",opts:["Article 31.","Article 29.","Article 46."],a:0,why:"Article 31 recognises the right to assemble peacefully, without weapons, and to hold meetings, rallies, demonstrations, marches and pickets. The constitutional right is exercised subject to the applicable legal framework.",ref:"Constitution of the Russian Federation, Article 31.",points:3},
+ {type:"CASE FILE",country:"GERMANY",title:"THE DIGITAL FOOTPRINT",text:"A public authority introduces a system that stores citizens' communications metadata for an extended period. The government invokes national security. A civil liberties group argues that indiscriminate retention interferes with privacy and the confidentiality of telecommunications.",ru:"Государственный орган вводит длительное хранение метаданных коммуникаций. Правительство ссылается на нацбезопасность. Правозащитники говорят о вмешательстве в частную жизнь.",q:"Which provisions are particularly relevant to the confidentiality of communications and personal rights?",opts:["Articles 2(1) and 10 of the Basic Law.","Articles 8 and 9 of the Basic Law.","Articles 20 and 21 of the Basic Law."],a:0,why:"Article 10 protects the privacy of correspondence, posts and telecommunications. Article 2(1), read together with Article 1(1), supports the general right of personality, including informational self-determination.",ref:"German Basic Law, Articles 1(1), 2(1) and 10.",points:3},
+ {type:"CASE FILE",country:"USA",title:"THE DIGITAL SEARCH",text:"Police officers obtain historical location records from a mobile phone company to place a suspect near the scene of a crime. They do not obtain a warrant. The suspect argues that accessing the records was a search under the Fourth Amendment.",ru:"Полиция получает исторические данные о местоположении телефона подозреваемого без ордера. Подозреваемый утверждает, что это был обыск по Четвёртой поправке.",q:"Which Supreme Court decision is most directly relevant to this issue?",opts:["Carpenter v. United States (2018).","Brown v. Board of Education (1954).","Marbury v. Madison (1803)."],a:0,why:"In Carpenter v. United States, the Supreme Court held that obtaining at least seven days of historical cell-site location information generally constitutes a Fourth Amendment search and ordinarily requires a warrant supported by probable cause.",ref:"Carpenter v. United States, 585 U.S. 296 (2018).",points:3},
+ {type:"CASE FILE",country:"RUSSIA",title:"THE PRIVATE MESSAGE",text:"A public official's private correspondence is disclosed by a state body without the person's consent. The authority claims that publication serves the public interest. The official argues that the disclosure violates constitutional guarantees of privacy and secrecy of correspondence.",ru:"Госорган раскрывает частную переписку чиновника без согласия. Власть говорит об общественном интересе. Чиновник заявляет о нарушении тайны переписки.",q:"Which constitutional articles are most directly relevant?",opts:["Articles 23 and 24.","Articles 31 and 32.","Articles 40 and 41."],a:0,why:"Article 23 protects privacy, personal and family secrets, and the privacy of correspondence. Article 24 restricts the collection, storage, use and dissemination of information about private life without consent.",ref:"Constitution of the Russian Federation, Articles 23–24.",points:3},
+ {type:"CONSTITUTION",country:"GERMANY",title:"CONSTITUTIONAL REVIEW",text:"A court considers applying a statute but is convinced that the statute is unconstitutional and that its validity is decisive for the case.",ru:"Суд рассматривает применение закона, но убеждён, что закон неконституционен, и его действительность решает исход дела.",q:"What should a German court generally do in this situation?",opts:["Refer the question to the Federal Constitutional Court under Article 100, where the statutory requirements are met.","Ignore the statute and replace it with its preferred rule.","Ask the federal government to repeal the statute."],a:0,why:"Article 100(1) of the Basic Law provides for a concrete judicial review procedure: where a court considers a statute unconstitutional and its validity is decisive, it must suspend proceedings and refer the question to the competent constitutional court.",ref:"German Basic Law, Article 100(1).",points:3},
+ {type:"CONSTITUTION",country:"USA",title:"WHO REVIEWS THE LAW?",text:"A federal court must decide a dispute in which one party argues that a statute conflicts with the U.S. Constitution. The opposing party claims that only the legislature may determine whether its own statute is constitutional.",ru:"Федеральный суд рассматривает спор о конституционности закона. Другая сторона заявляет, что только законодатель может это решать.",q:"Which principle is associated with Marbury v. Madison (1803)?",opts:["Judicial review: courts may refuse to apply laws that conflict with the Constitution in cases before them.","Parliamentary sovereignty: Congress has unlimited constitutional authority.","Federal pre-emption: every state law is automatically invalid."],a:0,why:"Marbury v. Madison is the landmark decision associated with judicial review. U.S. courts determine the law applicable to cases before them and may decline to enforce a statute that conflicts with the Constitution.",ref:"Marbury v. Madison, 5 U.S. (1 Cranch) 137 (1803).",points:3},
+ {type:"CONSTITUTION",country:"RUSSIA",title:"THE CONSTITUTIONAL COURT",text:"An applicant argues that a law applied in a particular case violates constitutional rights. The applicant seeks constitutional review rather than merely asking an ordinary court to reinterpret the statute.",ru:"Заявитель утверждает, что применённый закон нарушает конституционные права. Он добивается конституционной проверки.",q:"Which constitutional provision defines the principal powers of the Constitutional Court of the Russian Federation?",opts:["Article 125.","Article 31.","Article 80."],a:0,why:"Article 125 establishes the Constitutional Court's constitutional status and key powers, including constitutional review within the procedures and limits set by the Constitution and federal constitutional law.",ref:"Constitution of the Russian Federation, Article 125.",points:3},
+
+ /* === НОВАЯ КАРТОЧКА: CROSS-COUNTRY с ответами по 3 странам === */
+ {type:"CROSS-COUNTRY",country:"COMPARATIVE LAW",title:"ONE RIGHT, THREE MODELS",text:"A peaceful protest is restricted on public-order grounds. Your team must decide whether the restriction is constitutional in each of the three systems — and note that the answer may DIFFER.",ru:"Мирное собрание ограничено по мотивам общественного порядка. Команда должна решить, конституционно ли ограничение в каждой из трёх систем — и ответы могут различаться.",crossCountry:true,q:"Choose the verdict for each country:",answers:{RU:"partial",US:"legal",DE:"legal"},why:"Russia (Art. 31): peaceful assembly is protected, but the notification/permitting framework is stricter — courts often find restrictions lawful if the procedure was violated. USA (1st Amend.): peaceful protest is strongly protected; prior restraints are viewed with suspicion. Germany (Art. 8 GG): assembly is protected; notification (not permission) is generally required, and bans require a legal basis and proportionality.",ref:"Russian Constitution Art. 31; U.S. First Amendment; German Basic Law Art. 8.",points:4},
+
+ {type:"EVIDENCE",country:"EVIDENCE ROOM",title:"THE MISSING WARRANT",text:"The investigation file contains a police report describing a search of a private home. The file contains no warrant and no explanation of an emergency exception. The defence asks the team to identify the evidentiary gap.",ru:"В деле есть протокол обыска частного дома. Ордера нет, объяснения срочности тоже нет. Защита просит найти пробел в доказательствах.",q:"What is the most important question to investigate next?",opts:["Whether the search was authorised by a valid warrant or fell within a recognised exception.","Whether the officers liked the suspect.","Whether the search took place during office hours."],a:0,why:"The legality of a search depends on the applicable constitutional and statutory framework, including warrant requirements and recognised exceptions. The absence of a warrant is important, but the legal analysis must check whether an exception applies.",ref:"U.S. Constitution, Fourth Amendment; compare domestic search safeguards in the other jurisdictions.",points:2},
+ {type:"WITNESS",country:"WITNESS STATEMENT",title:"THE UNRELIABLE WITNESS",text:"A witness claims that the protest was violent. However, the witness was not present at the scene and relies entirely on a social media post shared by another person.",ru:"Свидетель утверждает, что протест был насильственным. Однако он не был на месте и опирается на пост в соцсетях.",q:"How should the legal team treat this statement?",opts:["As indirect information that requires verification and corroboration.","As conclusive proof of violence.","As automatically inadmissible in every legal system."],a:0,why:"The statement is hearsay-like information. Its evidentiary status depends on the applicable procedural rules. The team should verify the original source and seek independent corroboration.",ref:"Investigative reasoning exercise; evidentiary admissibility depends on the relevant procedural law.",points:2}
+];
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+const SAVE_KEY = "const_detective_save_v2";
+const colors = ["#d66d66","#6ea6d9","#79b99a","#c59ae0"];
+let players = [], current = 0, turnRolled = false, gameStarted = false;
+let lastCard = null, chosen = null, answered = false;
+let owned = {};            // tileIndex -> playerIndex
+let rounds = 0, maxRounds = 3;
+let demoMode = false;
+
+const board = document.getElementById("board");
+const overlay = document.getElementById("modalOverlay");
+const modal = document.getElementById("modal");
+
+/* ============================================================
+   BOARD COORDINATES
+   ============================================================ */
+function boardCoords(){
+  let a=[];
+  for(let c=0;c<8;c++) a.push([1,c+1]);      // top
+  for(let r=2;r<=8;r++) a.push([r,8]);        // right
+  for(let c=7;c>=1;c--) a.push([8,c]);        // bottom
+  for(let r=7;r>=2;r--) a.push([r,1]);        // left
+  return a;
+}
+const coords = boardCoords();
+
+/* ============================================================
+   RENDER BOARD (исправлено: единый цикл, чистка pawns)
+   ============================================================ */
+function renderBoard(){
+  board.innerHTML = "";
+
+  // Сначала центральная панель (одна)
+  const center = document.createElement("div");
+  center.className = "center";
+  center.style.gridRow = "2/8";
+  center.style.gridColumn = "2/8";
+  center.innerHTML = `
+    <div class="flags">🇷🇺 🇺🇸 🇩🇪</div>
+    <h2>THE INVESTIGATION BOARD</h2>
+    <p>Every case has evidence. Every constitutional system has its own rules. Build the strongest legal argument.</p>
+    <div style="font-size:12px;color:var(--gold);letter-spacing:2px;margin-top:12px">CASE FILES · EVIDENCE · VERDICTS</div>`;
+  board.appendChild(center);
+
+  // Затем клетки
+  spaces.forEach((s, i) => {
+    const [r, c] = coords[i];
+    const el = document.createElement("div");
+    el.className = "tile " + s[1];
+    el.style.gridRow = r;
+    el.style.gridColumn = c;
+    el.dataset.index = i;
+    el.innerHTML = `
+      <div class="num">${String(i+1).padStart(2,"0")}</div>
+      <div class="tile-icon">${s[2]}</div>
+      <div class="tile-name">${s[0]}</div>
+      <div class="pawns" id="pawns-${i}"></div>`;
+    el.onclick = () => onTileClick(i);
+    board.appendChild(el);
+  });
+}
+
+function onTileClick(i){
+  if(!gameStarted) return;
+  const tile = spaces[i];
+  if(!tile) return;
+  if(["case","constitution","cross","evidence","witness","court"].includes(tile[1])){
+    // бесплатный просмотр без хода (для презентации)
+    const card = pickCard(tile[1]);
+    showCard(card);
+  }
+}
+
+/* ============================================================
+   RENDER PLAYERS (исправлено: чистка pawns перед рендером)
+   ============================================================ */
+function renderPlayers(){
+  // 1) Панель игроков
+  document.getElementById("players").innerHTML = players.map((p, i) =>
+    `<div class="player ${i === current ? 'current' : ''}">
+       <div class="player-left">
+         <span class="dot" style="background:${p.color}"></span>
+         <span>${escapeHtml(p.name)} ${i === current ? '◀' : ''}</span>
+       </div>
+       <span class="score">${p.score} LP</span>
+     </div>`
+  ).join("");
+
+  // 2) Turn info
+  document.getElementById("turnInfo").innerHTML = players.length
+    ? `<strong>${escapeHtml(players[current].name)}</strong> is investigating.<br>
+       Position: ${players[current].pos+1} / ${spaces.length}<br>
+       Legal Points: ${players[current].score}`
+    : "Set up your team to begin the investigation.";
+
+  // 3) Кнопка
+  document.getElementById("rollBtn").disabled = !gameStarted || turnRolled;
+
+  // 4) Очищаем все контейнеры с фишками и перерисовываем
+  spaces.forEach((_, i) => {
+    const el = document.getElementById("pawns-" + i);
+    if(el) el.innerHTML = "";
+  });
+
+  // 5) Рисуем фишки
+  players.forEach(p => {
+    const cont = document.getElementById("pawns-" + p.pos);
+    if(cont){
+      const pawn = document.createElement("span");
+      pawn.className = "pawn";
+      pawn.style.background = p.color;
+      pawn.title = p.name;
+      cont.appendChild(pawn);
+    }
+  });
+
+  // 6) Подсветка активной клетки + бейджи владельцев
+  document.querySelectorAll(".tile").forEach(t => {
+    t.classList.remove("active");
+    t.classList.remove("owned");
+    const badge = t.querySelector(".owner-badge");
+    if(badge) badge.remove();
+  });
+  if(players.length){
+    const activeTile = document.querySelector(`[data-index="${players[current].pos}"]`);
+    if(activeTile) activeTile.classList.add("active");
+  }
+  Object.entries(owned).forEach(([idx, pIdx]) => {
+    const t = document.querySelector(`[data-index="${idx}"]`);
+    if(t){
+      t.classList.add("owned");
+      const badge = document.createElement("div");
+      badge.className = "owner-badge";
+      badge.textContent = "🏳️";
+      badge.style.color = players[pIdx].color;
+      t.appendChild(badge);
+    }
+  });
+
+  // 7) Раунд
+  document.getElementById("roundPill").textContent =
+    `ROUND ${Math.min(rounds+1, maxRounds)} / ${maxRounds} · TURN ${current+1}`;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function showModal(content){
+  modal.innerHTML = content;
+  overlay.classList.add("show");
+}
+function closeModal(){ overlay.classList.remove("show"); }
+
+/* ============================================================
+   SETUP
+   ============================================================ */
+document.getElementById("newGameBtn").onclick = setupGame;
+
+function setupGame(){
+  showModal(`
+    <div class="modal-top">
+      <div class="kicker">START A NEW INVESTIGATION</div>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <h2>Build your investigation team</h2>
+    <p class="case-text">Choose between 2 and 4 players. Take turns on the same device.</p>
+    <div class="setup">
+      <div class="setup-grid">
+        ${[0,1,2,3].map(n => `
+          <label>PLAYER ${n+1}${n<2?' · REQUIRED':' · OPTIONAL'}
+            <input id="name${n}" maxlength="18" placeholder="Detective ${n+1}" value="${n<2?'Detective '+(n+1):''}">
+          </label>`).join("")}
+      </div>
+      <label>NUMBER OF ROUNDS
+        <input id="roundsInput" type="number" min="1" max="10" value="3">
+      </label>
+      <div class="small">The game is designed for local, turn-based play. No account or internet connection is required after the page loads. Progress is saved automatically.</div>
+      <button class="btn" onclick="startGame()">START INVESTIGATION</button>
+    </div>`);
+}
+
+function startGame(){
+  let names = [0,1,2,3].map(i => document.getElementById("name"+i).value.trim()).filter(Boolean);
+  if(names.length < 2){ alert("Please enter at least two player names."); return; }
+  players = names.map((name, i) => ({ name, score: 0, pos: 0, color: colors[i] }));
+  current = 0;
+  turnRolled = false;
+  gameStarted = true;
+  owned = {};
+  rounds = 0;
+  maxRounds = Math.max(1, parseInt(document.getElementById("roundsInput").value) || 3);
+  document.getElementById("dice").textContent = "⚄";
+  document.getElementById("rollMessage").textContent = "Roll the dice to begin.";
+  document.getElementById("log").innerHTML = "";
+  log("🎮 Investigation started. " + players[0].name + " goes first.");
+  renderBoard();
+  renderPlayers();
+  saveGame();
+  closeModal();
+}
+
+/* ============================================================
+   DICE
+   ============================================================ */
+document.getElementById("rollBtn").onclick = rollDice;
+
+function rollDice(){
+  if(!gameStarted || turnRolled) return;
+  const roll = Math.floor(Math.random() * 6) + 1;
+  turnRolled = true;
+  document.getElementById("dice").textContent = ["","⚀","⚁","⚂","⚃","⚄","⚅"][roll];
+  const p = players[current];
+  const old = p.pos;
+  p.pos = (p.pos + roll) % spaces.length;
+
+  // Проверка круга: если перешли через START
+  if(p.pos < old && old + roll >= spaces.length){
+    rounds++;
+    log("🔁 " + p.name + " completed a round.");
+    if(rounds >= maxRounds * players.length){
+      endGame();
+      return;
+    }
+  }
+
+  document.getElementById("rollMessage").textContent =
+    `${p.name} rolled ${roll} and moved from ${old+1} to ${p.pos+1}.`;
+  renderPlayers();
+  setTimeout(() => landOnSpace(), 350);
+}
+
+/* ============================================================
+   LAND ON SPACE
+   ============================================================ */
+function landOnSpace(){
+  const idx = players[current].pos;
+  const s = spaces[idx];
+  const p = players[current];
+
+  // Плата владельцу, если клетка куплена и это не его клетка
+  if(owned[idx] !== undefined && owned[idx] !== current){
+    const owner = players[owned[idx]];
+    p.score = Math.max(0, p.score - 1);
+    owner.score += 1;
+    log(`💸 ${p.name} paid 1 LP to ${owner.name} (owned tile #${idx+1}).`);
+  }
+
+  if(s[1] === "start" || s[1] === "bonus"){
+    p.score += 1;
+    renderPlayers();
+    showEvent("START / BONUS", "You passed a milestone in the investigation. Gain 1 Legal Point.", 1);
+    return;
+  }
+
+  if(["case","constitution","cross","evidence","witness","court"].includes(s[1])){
+    const card = pickCard(s[1]);
+    showCard(card, idx);
+    return;
+  }
+
+  if(s[1] === "objection"){
+    showEvent("OBJECTION!",
+      "Challenge the previous player's last legal argument. If the group agrees that you identify a genuine legal gap, gain 2 Legal Points.",
+      2);
+    return;
+  }
+
+  if(s[1] === "court" && idx === spaces.length - 1){
+    showEvent("FINAL COURT",
+      "Your team reaches the final court. State your strongest legal conclusion and identify one constitutional provision that supports it. The other players decide whether the argument is convincing.",
+      2);
+    return;
+  }
+}
+
+/* ============================================================
+   PICK CARD
+   ============================================================ */
+function pickCard(type){
+  let pool;
+  switch(type){
+    case "case":         pool = cards.filter(c => c.type === "CASE FILE"); break;
+    case "constitution": pool = cards.filter(c => c.type === "CONSTITUTION"); break;
+    case "cross":        pool = cards.filter(c => c.type === "CROSS-COUNTRY"); break;
+    case "evidence":     pool = cards.filter(c => c.type === "EVIDENCE"); break;
+    case "witness":      pool = cards.filter(c => c.type === "WITNESS"); break;
+    case "court":        pool = cards.filter(c => c.type === "CROSS-COUNTRY"); break;
+    default:             pool = cards;
+  }
+  if(!pool.length) pool = cards;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ============================================================
+   SHOW CARD (исправлено: сброс chosen/answered + поддержка cross-country + 🔊)
+   ============================================================ */
+function showCard(card, tileIdx = null){
+  lastCard = card;
+  chosen = null;
+  answered = false;
+  card._tileIdx = tileIdx;
+
+  const isCross = !!card.crossCountry;
+
+  const optionsHtml = isCross
+    ? renderCrossCountryOptions(card)
+    : card.opts.map((o, i) =>
+        `<button class="option" data-choice="${i}" onclick="selectOption(${i})">
+           <strong>${String.fromCharCode(65+i)}.</strong> ${o}
+         </button>`).join("");
+
+  showModal(`
+    <div class="modal-top">
+      <div class="kicker">${card.type} · ${card.country}</div>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <h2>${card.title}</h2>
+    <div class="case-text">
+      ${card.text}
+      <button class="speak-btn" onclick="speakText(${escapeAttr(card.text)})">🔊 Listen</button>
+    </div>
+    <div class="translation">${card.ru}</div>
+    <div class="question">
+      ${card.q}
+      ${isCross ? '' : `<button class="speak-btn" onclick="speakText(${escapeAttr(card.q)})">🔊</button>`}
+    </div>
+    <div class="${isCross ? 'country-grid' : 'options'}" id="optionsContainer">
+      ${optionsHtml}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="small">
+      ${isCross
+        ? 'LEGAL TASK · Choose the strongest verdict for each country. Correct = up to ' + card.points + ' Legal Points.'
+        : 'LEGAL TASK · Select the strongest answer, then explain your reasoning. Correct = up to ' + card.points + ' Legal Points.'}
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">CLOSE</button>
+      <button class="btn" id="finishCard" disabled onclick="finishCard()">CONFIRM & CONTINUE</button>
+    </div>`);
+
+  // Для cross-country — отдельные обработчики
+  if(isCross){
+    document.querySelectorAll(".country-option").forEach(el => {
+      el.onclick = () => selectCountryVerdict(el);
+    });
+  }
+}
+
+function escapeAttr(s){
+  return JSON.stringify(String(s));
+}
+
+/* ============================================================
+   CROSS-COUNTRY: выбор вердикта по каждой стране
+   ============================================================ */
+const CROSS_STATE = { RU: null, US: null, DE: null };
+const COUNTRY_META = {
+  RU: { flag: "🇷🇺", name: "RUSSIA" },
+  US: { flag: "🇺🇸", name: "USA" },
+  DE: { flag: "🇩🇪", name: "GERMANY" }
+};
+
+function renderCrossCountryOptions(card){
+  CROSS_STATE.RU = null; CROSS_STATE.US = null; CROSS_STATE.DE = null;
+  return Object.entries(COUNTRY_META).map(([code, meta]) => `
+    <div class="country-option" data-country="${code}">
+      <div class="flag">${meta.flag}</div>
+      <div class="cname">${meta.name}</div>
+      <div class="verdict" id="verdict-${code}">tap to choose</div>
+    </div>`).join("");
+}
+
+function selectCountryVerdict(el){
+  if(answered) return;
+  const code = el.dataset.country;
+  const order = ["legal","illegal","partial"];
+  const currentVal = CROSS_STATE[code];
+  const nextIdx = currentVal ? (order.indexOf(currentVal) + 1) % order.length : 0;
+  CROSS_STATE[code] = order[nextIdx];
+
+  const labels = { legal: "✅ LEGAL", illegal: "❌ ILLEGAL", partial: "⚠️ DEPENDS" };
+  document.getElementById("verdict-"+code).textContent = labels[CROSS_STATE[code]];
+  el.classList.add("selected");
+
+  // Кнопка активна, когда все три выбраны
+  const allChosen = CROSS_STATE.RU && CROSS_STATE.US && CROSS_STATE.DE;
+  document.getElementById("finishCard").disabled = !allChosen;
+}
+
+/* ============================================================
+   SELECT OPTION (обычный режим)
+   ============================================================ */
+function selectOption(i){
+  if(answered) return;
+  chosen = i;
+  document.querySelectorAll(".option").forEach((b, j) =>
+    b.classList.toggle("selected", i === j)
+  );
+  document.getElementById("finishCard").disabled = false;
+}
+
+/* ============================================================
+   FINISH CARD (исправлено: корректная проверка cross-country)
+   ============================================================ */
+function finishCard(){
+  const p = players[current];
+  const isCross = !!lastCard.crossCountry;
+  let good = false;
+  let earned = 0;
+
+  if(isCross){
+    // Сравниваем все три страны
+    const correct = lastCard.answers;
+    const allRight = ["RU","US","DE"].every(c => CROSS_STATE[c] === correct[c]);
+    const anyRight = ["RU","US","DE"].some(c => CROSS_STATE[c] === correct[c]);
+    good = allRight;
+    earned = allRight ? lastCard.points : (anyRight ? 1 : 0);
+  } else {
+    if(chosen === null) return;
+    good = chosen === lastCard.a;
+    earned = good ? lastCard.points : 0;
+  }
+
+  p.score += earned;
+  answered = true;
+
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback show " + (good ? "" : "wrongfb");
+
+  if(isCross){
+    const rows = ["RU","US","DE"].map(c => {
+      const ok = CROSS_STATE[c] === lastCard.answers[c];
+      return `<div style="margin:4px 0">
+        ${COUNTRY_META[c].flag} ${COUNTRY_META[c].name}:
+        your <b>${CROSS_STATE[c]}</b> · correct <b>${lastCard.answers[c]}</b> ${ok ? "✅" : "❌"}
+      </div>`;
+    }).join("");
+    fb.innerHTML = `
+      <strong>${good ? "All correct! +" + earned + " LP" : (earned ? "Partial. +" + earned + " LP" : "No points.")}</strong>
+      <div style="margin:8px 0">${rows}</div>
+      ${lastCard.why}<br><br>
+      <span style="color:#d9bd80">Authority:</span> ${lastCard.ref}`;
+  } else {
+    fb.innerHTML = `
+      <strong>${good ? "Correct analysis. +" + earned + " LP" : "Not quite. No points awarded."}</strong><br>
+      ${lastCard.why}<br><br>
+      <span style="color:#d9bd80">Authority:</span> ${lastCard.ref}`;
+    document.querySelectorAll(".option").forEach((b, j) => {
+      if(j === lastCard.a) b.classList.add("correct");
+      else if(j === chosen) b.classList.add("wrong");
+    });
+  }
+
+  // Покупка клетки, если правильно и клетка не куплена
+  if(good && lastCard._tileIdx !== null && owned[lastCard._tileIdx] === undefined){
+    owned[lastCard._tileIdx] = current;
+    log(`🏳️ ${p.name} claimed tile #${lastCard._tileIdx + 1} — now owned!`);
+  }
+
+  document.getElementById("finishCard").textContent = "END TURN";
+  document.getElementById("finishCard").onclick = nextTurn;
+  document.getElementById("finishCard").disabled = false;
+
+  renderPlayers();
+  saveGame();
+}
+
+/* ============================================================
+   EVENT + NEXT TURN
+   ============================================================ */
+function showEvent(title, text, effect){
+  const p = players[current];
+  p.score = Math.max(0, p.score + effect);
+  renderPlayers();
+  showModal(`
+    <div class="modal-top">
+      <div class="kicker">GAME EVENT</div>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <h2>${title}</h2>
+    <p class="case-text">${text}</p>
+    <div class="feedback show">${effect >= 0 ? "+" : ""}${effect} Legal Points</div>
+    <div class="modal-actions">
+      <span class="small">Current score: ${p.score} LP</span>
+      <button class="btn" onclick="nextTurn()">END TURN</button>
+    </div>`);
+}
+
+function nextTurn(){
+  closeModal();
+  current = (current + 1) % players.length;
+  turnRolled = false;
+  chosen = null;
+  answered = false;
+  document.getElementById("dice").textContent = "⚄";
+  document.getElementById("rollMessage").textContent = "Next investigator: " + players[current].name;
+  log("➡️ Turn passed to " + players[current].name);
+  renderPlayers();
+  saveGame();
+}
+
+/* ============================================================
+   END GAME
+   ============================================================ */
+function endGame(){
+  const sorted = [...players].sort((a,b) => b.score - a.score);
+  const winner = sorted[0];
+  const leaders = sorted.filter(p => p.score === winner.score);
+
+  showModal(`
+    <div class="final-banner">
+      <h2>🏆 ${leaders.length > 1 ? "TIE!" : "WINNER"}</h2>
+      <div class="big-score">${winner.score} LP</div>
+      <p class="case-text" style="margin-top:8px">
+        ${leaders.map(p => escapeHtml(p.name)).join(" & ")}
+      </p>
+    </div>
+    <h3 style="color:var(--gold)">Final ranking</h3>
+    ${sorted.map((p, i) => `
+      <div class="player">
+        <div class="player-left">
+          <span class="dot" style="background:${p.color}"></span>
+          <span>${i+1}. ${escapeHtml(p.name)}</span>
+        </div>
+        <span class="score">${p.score} LP</span>
+      </div>`).join("")}
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">CLOSE</button>
+      <button class="btn" onclick="setupGame()">PLAY AGAIN</button>
+    </div>`);
+
+  gameStarted = false;
+  localStorage.removeItem(SAVE_KEY);
+}
+
+/* ============================================================
+   LOG
+   ============================================================ */
+function log(msg){
+  const el = document.getElementById("log");
+  const p = document.createElement("p");
+  p.textContent = msg;
+  el.prepend(p);
+  while(el.children.length > 20) el.removeChild(el.lastChild);
+}
+
+/* ============================================================
+   SPEECH SYNTHESIS (озвучка английского)
+   ============================================================ */
+function speakText(text){
+  if(!("speechSynthesis" in window)){ alert("Your browser does not support speech."); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+/* ============================================================
+   SAVE / LOAD (localStorage)
+   ============================================================ */
+function saveGame(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      players, current, rounds, maxRounds, owned, gameStarted, turnRolled
+    }));
+  }catch(e){}
+}
+
+function loadGame(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data.players || !data.players.length) return false;
+    players = data.players;
+    current = data.current || 0;
+    rounds = data.rounds || 0;
+    maxRounds = data.maxRounds || 3;
+    owned = data.owned || {};
+    gameStarted = !!data.gameStarted;
+    turnRolled = !!data.turnRolled;
+    return gameStarted;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   DEMO MODE (для защиты проекта — авто-ход)
+   ============================================================ */
+document.getElementById("demoBtn").onclick = () => {
+  if(!gameStarted){
+    players = [
+      { name: "Player 1", score: 0, pos: 0, color: colors[0] },
+      { name: "Player 2", score: 0, pos: 0, color: colors[1] }
+    ];
+    current = 0;
+    gameStarted = true;
+    owned = {};
+    rounds = 0;
+    maxRounds = 3;
+    turnRolled = false;
+    renderBoard();
+    log("🎬 Demo mode started.");
+  }
+  renderPlayers();
+  document.getElementById("rollBtn").disabled = false;
+  setTimeout(() => rollDice(), 300);
+};
+
+/* ============================================================
+   RULES
+   ============================================================ */
+document.getElementById("rulesBtn").onclick = () => showModal(`
+  <div class="modal-top">
+    <div class="kicker">PLAYER GUIDE</div>
+    <button class="close" onclick="closeModal()">×</button>
+  </div>
+  <h2>How to play</h2>
+  <div class="case-text">
+    <ol>
+      <li><b>Set up:</b> choose 2–4 players and number of rounds (default 3). Each player starts at START with 0 Legal Points.</li>
+      <li><b>Roll:</b> roll the dice and move clockwise around the board.</li>
+      <li><b>Draw:</b> the space determines the type of challenge: case file, evidence, constitutional question, witness, cross-country comparison or court.</li>
+      <li><b>Decide:</b> choose the strongest legal answer. Read the explanation and authority after confirming.</li>
+      <li><b>Claim:</b> a correct answer on a case tile lets you <b>claim</b> it. Other players pay you 1 LP when they land on it.</li>
+      <li><b>Argue:</b> for an extra classroom challenge, explain why the other options are weaker and compare the three jurisdictions.</li>
+      <li><b>Win:</b> after all rounds are done, the player with the most Legal Points wins.</li>
+    </ol>
+    <p><b>Scoring:</b> case / constitution / cross-country: 3–4 points; evidence / witness: 2 points; bonus space: 1 point. A wrong answer earns no points.</p>
+    <p><b>Cross-country cards:</b> you must choose a verdict for ALL THREE countries at once — and the answers may differ! Partial credit (+1) is awarded if at least one is correct.</p>
+    <p><b>Important:</b> This is an educational game, not legal advice. Some constitutional questions are fact-sensitive and may have more than one defensible argument.</p>
+  </div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeModal()">GOT IT</button>
+  </div>`);
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init(){
+  renderBoard();
+  const loaded = loadGame();
+  if(loaded){
+    renderPlayers();
+    log("💾 Saved game restored.");
+  } else {
+    renderPlayers();
+  }
+})();
+</script>
+</body>
+</html>
